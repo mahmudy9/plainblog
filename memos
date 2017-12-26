@@ -1,0 +1,6 @@
+Sessions and cookies :: cookies will be the main authentication factor and from them we get sessions , also sessions are there doing there work ,
+But without cookies no authentication available for user
+
+Session data :: will be sessions table and user table if required only
+
+Admin page :: View users , Create users , view posts and comments and Edit or delete them and view contacts
