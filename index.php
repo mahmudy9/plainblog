@@ -5,12 +5,31 @@ session_start();
 $level = "" ;
 setcookie('test' , '12345' , 3600+time() , "/", "" , false , false);
 if(! isset($_COOKIE['test'])){
-$level = "";
+$cookie = "0";
 }
 
 
 //check user level is 1
- if (isset($_COOKIE['ke'])) {
+ if (isset($_SESSION['id']) && isset($_COOKIE['ke']) ){
+    $id = $_SESSION['id'];
+    try{
+
+        $conn = new PDO("mysql:host=localhost;dbname=test" , "root" , "123456");
+        $conn->setAttribute(PDO::ATTR_ERRMODE , PDO::ERRMODE_EXCEPTION);
+        $stmt = $conn->prepare(" SELECT * FROM users WHERE (id = '$id' ) ");
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            if($result['level'] == 1){
+                $level = "1";
+            }elseif($result['level']== 0){
+                $level = "0";
+            }
+    }catch(PDOException $e){
+        echo "error occured" . $e->getMessage();
+    }
+    $conn = null;
+}
+ elseif (isset($_COOKIE['ke'])) {
 	$keep = $_COOKIE['ke'];
 	try {
 		$conn = new PDO("mysql:host=localhost;dbname=test", "root", "123456");
@@ -26,7 +45,6 @@ $level = "";
 			$stmt2->execute();
 			if($stmt2->rowCount() == 1){
 			$result2 = $stmt2->fetch(PDO::FETCH_ASSOC);
-            $_SESSION = $result2;
             if($result2['level'] == 1){
                 $level = "1";
             }elseif($result['level']== 0){
@@ -34,12 +52,11 @@ $level = "";
             }
 		}
 		}
-		$conn = null;
 	} catch (PDOException $e) {
 		echo "error occured".$e->getMessage();
-	}
-}elseif (! isset($_SESSION['level']) ) {
-	$level = "";
+    }
+    		$conn = null;
+
 }
 
 ?>
@@ -95,33 +112,6 @@ $level = "";
                     <!-- Newsfeed when logged in -->
 
 <?php
-/*
-if (isset($_COOKIE['ke'])) {
-    $keep = $_COOKIE['ke'];
-    
-    try {
-        $conn = new PDO("mysql:host=localhost;dbname=test", "root", "123456");
-        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $stmt = $conn->prepare("SELECT * FROM sessions WHERE (hash = '$keep') ");
-        $stmt->execute();
-        if ($stmt->rowCount() == 1) {
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $id = $result['user_id'];
-            $stmt2 = $conn->prepare("SELECT * FROM users WHERE ( id ='$id'  )");
-            $stmt2->execute();
-            $result2 = $stmt2->fetch(PDO::FETCH_ASSOC);
-            $_SESSION = $result2;
-            $conn = null;
-        } else {
-            return;
-        }
-    } catch (PDOException $e) {
-        echo "error occured connecting ".$e->getMessage();
-    }
-    session_regenerate_id(true);
-    
-    //echo $_SESSION['expire'];
-  */  
   if($level == '1'){
 
   
@@ -170,14 +160,6 @@ EOD;
 EOD;
     
     }
-/*} else {
-    $_SESSION = array();
-    $params = session_get_cookie_params();
-    setcookie(session_name(), "", time()-3600, $params['path'], $params['domain'], $params['secure'], $params['httponly'] );
-
-    setcookie("ke", "", time()-3600, "/", "", 0, 1 );
-    session_destroy();
-}*/
 ?>
 
                                         <li><a title="About" href="http://localhost:8080/post/about.php">About</a></li>
@@ -216,7 +198,11 @@ EOD;
 
 
 <?php
+require_once 'htmlpurifier/library/HTMLPurifier.auto.php';
 
+    $config = HTMLPurifier_Config::createDefault();
+    $purifier = new HTMLPurifier($config);
+    //$clean_html = $purifier->purify($dirty_html);
 try {
     $conn = new PDO("mysql:host=localhost;dbname=test", "root", "123456");
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -225,8 +211,8 @@ try {
 
     while ($results = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $id = $results['id'] ;
-        $title = htmlspecialchars($results['title']);
-        $bio = htmlspecialchars($results['bio']);
+        $title = $purifier->purify($results['title']);
+        $bio = $purifier->purify($results['bio']);
         $createdAt = $results['created_at'];
 
         echo <<<EOD
@@ -242,8 +228,7 @@ EOD;
 } catch (PDOException $e) {
     echo "error occured" . $e->getMessage();
 }
-
-
+echo $level;
         ?>
 
         <!--div class="blog-post">

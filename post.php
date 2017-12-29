@@ -1,5 +1,66 @@
 
+<?php
+session_start();
 
+//check cookie activated
+$level = "" ;
+setcookie('test' , '12345' , 3600+time() , "/", "" , false , false);
+if(! isset($_COOKIE['test'])){
+$cookie = "0";
+}
+
+
+//check user level is 1
+ if (isset($_SESSION['id']) && isset($_COOKIE['ke']) ){
+    $id = $_SESSION['id'];
+    try{
+
+        $conn = new PDO("mysql:host=localhost;dbname=test" , "root" , "123456");
+        $conn->setAttribute(PDO::ATTR_ERRMODE , PDO::ERRMODE_EXCEPTION);
+        $stmt = $conn->prepare(" SELECT * FROM users WHERE (id = '$id' ) ");
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            if($result['level'] == 1){
+                $level = "1";
+            }elseif($result['level']== 0){
+                $level = "0";
+            }
+    }catch(PDOException $e){
+        echo "error occured" . $e->getMessage();
+    }
+    $conn = null;
+}
+ elseif (isset($_COOKIE['ke'])) {
+	$keep = $_COOKIE['ke'];
+	try {
+		$conn = new PDO("mysql:host=localhost;dbname=test", "root", "123456");
+		$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+		$stmt = $conn->prepare(" SELECT * FROM sessions WHERE (hash = :hash) ");
+		$stmt->bindParam(':hash' , $keep , PDO::PARAM_STR);
+		$stmt->execute();
+		if ($stmt->rowCount() == 1) {
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $_SESSION = $result;
+			$id = $result['user_id'];
+			$stmt2= $conn->prepare("SELECT * FROM users WHERE (id = '$id')");
+			$stmt2->execute();
+			if($stmt2->rowCount() == 1){
+			$result2 = $stmt2->fetch(PDO::FETCH_ASSOC);
+            if($result2['level'] == 1){
+                $level = "1";
+            }elseif($result['level']== 0){
+                $level = "0";
+            }
+		}
+		}
+	} catch (PDOException $e) {
+		echo "error occured".$e->getMessage();
+    }
+    		$conn = null;
+
+}
+
+?>
 <?php
 
 if (isset($_GET['id'])) {
@@ -66,19 +127,11 @@ if (isset($_GET['id'])) {
                             Bloggers
                         </a>
                     </li-->
-
                     <?php
-//require_once("session_handle.php");
-                    session_start();
-                    if (isset($_SESSION['level']) && $_SESSION['level'] == 1) {
-                        session_regenerate_id();
-                        if (isset($_SESSION['expire'])) {
-                            $expire = strtotime($_SESSION['expire']);
-                            setcookie("keepme", $_SESSION['hash'], $expire, "/", "", 0, 1);
-                        }
-                        //echo $_SESSION['expire'];
-    
-                                        echo <<<EOD
+  if($level == '1'){
+
+  
+    echo <<<EOD
 
 
 <li class="">
@@ -91,9 +144,38 @@ if (isset($_GET['id'])) {
     Create Post</a>
 </li>
     
+<li class="">
+    <a title="Information" id="nav_menu_info" href="http://localhost:8080/post/logout.php" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+    Log out</a>
+</li>
+
+
 
 EOD;
-                    }
+    }elseif($level == '0'){
+        echo <<<EOD
+    
+<li class="">
+    <a title="Information" id="nav_menu_info" href="http://localhost:8080/post/logout.php" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+    Log out</a>
+</li>
+
+
+
+EOD;
+    }elseif($level == ""){
+           echo <<<EOD
+    
+<li class="">
+    <a title="Information" id="nav_menu_info" href="http://localhost:8080/post/login.php" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+    Log in</a>
+</li>
+
+
+
+EOD;
+    
+    }
 ?>
 
 
@@ -146,12 +228,16 @@ EOD;
                 exit;
             } else {
                 //while($results = $stmt->fetch(PDO::FETCH_ASSOC)){
+                require_once 'htmlpurifier/library/HTMLPurifier.auto.php';
 
+                $config = HTMLPurifier_Config::createDefault();
+                $purifier = new HTMLPurifier($config);
+                //$clean_html = $purifier->purify($dirty_html);
                 //$id = $results['id'] ;
-                $title = htmlentities($results['title']);
-                $bio = htmlentities($results['bio']);
+                $title = $purifier->purify($results['title']);
+                $bio = $purifier->purify($results['bio']);
                 $createdAt = $results['created_at'];
-                $content = htmlentities($results['content']);
+                $content = $purifier->purify($results['content']);
 
                 echo <<<EOD
         <div class='blog-post'>

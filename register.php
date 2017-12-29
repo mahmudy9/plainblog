@@ -1,3 +1,66 @@
+<?php
+session_start();
+
+//check cookie activated
+$level = "" ;
+setcookie('test' , '12345' , 3600+time() , "/", "" , false , false);
+if(! isset($_COOKIE['test'])){
+$cookie = "0";
+}
+
+
+//check user level is 1
+ if (isset($_SESSION['id']) && isset($_COOKIE['ke']) ){
+    $id = $_SESSION['id'];
+    try{
+
+        $conn = new PDO("mysql:host=localhost;dbname=test" , "root" , "123456");
+        $conn->setAttribute(PDO::ATTR_ERRMODE , PDO::ERRMODE_EXCEPTION);
+        $stmt = $conn->prepare(" SELECT * FROM users WHERE (id = '$id' ) ");
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            if($result['level'] == 1){
+                $level = "1";
+            }elseif($result['level']== 0){
+                $level = "0";
+            }
+    }catch(PDOException $e){
+        echo "error occured" . $e->getMessage();
+    }
+    $conn = null;
+}
+ elseif (isset($_COOKIE['ke'])) {
+	$keep = $_COOKIE['ke'];
+	try {
+		$conn = new PDO("mysql:host=localhost;dbname=test", "root", "123456");
+		$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+		$stmt = $conn->prepare(" SELECT * FROM sessions WHERE (hash = :hash) ");
+		$stmt->bindParam(':hash' , $keep , PDO::PARAM_STR);
+		$stmt->execute();
+		if ($stmt->rowCount() == 1) {
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $_SESSION = $result;
+			$id = $result['user_id'];
+			$stmt2= $conn->prepare("SELECT * FROM users WHERE (id = '$id')");
+			$stmt2->execute();
+			if($stmt2->rowCount() == 1){
+			$result2 = $stmt2->fetch(PDO::FETCH_ASSOC);
+            if($result2['level'] == 1){
+                $level = "1";
+            }elseif($result['level']== 0){
+                $level = "0";
+            }
+		}
+		}
+	} catch (PDOException $e) {
+		echo "error occured".$e->getMessage();
+    }
+    		$conn = null;
+
+}
+
+?>
+
 <!DOCTYPE html>
 <!-- saved from url=(0026)&&**blog -->
 <html lang="en">

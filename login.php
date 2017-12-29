@@ -1,7 +1,8 @@
 <?php
 setcookie('test' , '12345' , 3600+time() , "/", "" , false , false);
 session_start();
-if ( isset($_SESSION['level'])) {
+if(!isset($_SESSION['isadmin']) && $_SESSION['isadmin'] != "1"){
+if ( isset($_SESSION['id']) && isset($_COOKIE['ke'])  ) {
 	header("location: index.php");
 	exit();
 } elseif (isset($_COOKIE['ke'])) {
@@ -14,12 +15,15 @@ if ( isset($_SESSION['level'])) {
 		$stmt->execute();
 		$conn= null;
 		if ($stmt->rowCount() == 1) {
+			$result = $stmt->fetch(PDO::FETCH_ASSOC);
+			$_SESSION['id'] = $result['user_id'];
 			header("location: index.php");
 			exit();
 		}
 	} catch (PDOException $e) {
 		echo "error occured".$e->getMessage();
 	}
+}
 }
 ?>
 <!DOCTYPE html>
@@ -156,25 +160,28 @@ if ( isset($_SESSION['level'])) {
 							$stmt3 = $conn->prepare("DELETE FROM sessions WHERE (agent = '$agent' AND ip = '$ip' )");
 							$stmt3->execute();
 						
-								$_SESSION = $result;
-								$_SESSION['hash'] = hash('sha512', $site_key.session_id().microtime());
-								$_SESSION['ip'] = $_SERVER['REMOTE_ADDR'];
-								$_SESSION['agent'] = $_SERVER['HTTP_USER_AGENT'];
+								$_SESSION['id'] = $result['id'];
+								if($result['level'] == 1){
+									$_SESSION['admin'] = "1";
+								}
+								$hash = hash('sha512', $site_key.session_id().microtime());
+								$ip = $_SERVER['REMOTE_ADDR'];
+								$agent = $_SERVER['HTTP_USER_AGENT'];
 							if (isset($keep) && $keep == 1) {
-								$_SESSION['expire'] = date("Y-m-d H:i:s", strtotime('+14 days'));
+								$expire = date("Y-m-d H:i:s", strtotime('+14 days'));
 							}
 
 								$stmt4 = $conn->prepare("INSERT INTO sessions(user_id, hash, ip, agent, expire) VALUES(:user_id , :hash , :ip, :agent, :expire) ");
 								$stmt4->bindParam(":user_id", $_SESSION['id'], PDO::PARAM_INT);
-								$stmt4->bindParam(":hash", $_SESSION['hash'], PDO::PARAM_STR);
-								$stmt4->bindParam(":ip", $_SESSION['ip'], PDO::PARAM_STR);
-								$stmt4->bindParam(":agent", $_SESSION['agent'], PDO::PARAM_STR);
-								$stmt4->bindParam(":expire", $_SESSION['expire'], PDO::PARAM_STR);
+								$stmt4->bindParam(":hash", $hash, PDO::PARAM_STR);
+								$stmt4->bindParam(":ip", $ip, PDO::PARAM_STR);
+								$stmt4->bindParam(":agent", $agent, PDO::PARAM_STR);
+								$stmt4->bindParam(":expire", $expire, PDO::PARAM_STR);
 								$stmt4->execute();
 								$conn = null;
 							if ($stmt4) {
-									$expire = strtotime($_SESSION['expire']);
-									setcookie("ke", $_SESSION['hash'], $expire, "/", "", 0, 1);
+									$expire = strtotime($expire);
+									setcookie("ke", $hash, $expire, "/", "", 0, 1);
 								header("location: index.php");
 								exit();
 							} else {

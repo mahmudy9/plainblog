@@ -1,3 +1,29 @@
+<?php
+session_start();
+
+//check cookie activated
+
+setcookie('test' , '12345' , 3600+time() , "/", "" , false , false);
+if(! isset($_COOKIE['test'])){
+	header("location: login.php");
+	exit();
+}
+
+
+//check user level is 1
+if(!isset($_SESSION['id']) || !isset($_COOKIE['ke']) ){
+	header("location: 404page.php");
+	exit();
+}
+if(! isset($_SESSION['admin']) && $_SESSION['admin'] != '1' ){
+	$_SESSION['isadmin'] = "1";
+	header('location: login.php');
+	exit();
+}
+
+?>
+
+
 <!DOCTYPE html>
 <!-- saved from url=(0026)&&**blog -->
 <html lang="en">
@@ -80,6 +106,12 @@
     <a title="Information" id="nav_menu_info" href="http://localhost:8080/post/cpost.php" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
     Create Post</a>
 </li>
+
+					<li class="">
+						<a title="Information" id="nav_menu_info" href="http://localhost:8080/post/logout.php" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+						Logout</a>
+					</li>
+
 
 
                                         <li><a title="Community Projects" href="http://localhost:8080/post/about.php">About</a></li>

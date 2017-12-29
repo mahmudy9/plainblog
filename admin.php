@@ -2,7 +2,7 @@
 session_start();
 
 //check cookie activated
-$level = 0 ;
+
 setcookie('test' , '12345' , 3600+time() , "/", "" , false , false);
 if(! isset($_COOKIE['test'])){
 	header("location: login.php");
@@ -11,42 +11,16 @@ if(! isset($_COOKIE['test'])){
 
 
 //check user level is 1
- if (isset($_COOKIE['ke'])) {
-	$keep = $_COOKIE['ke'];
-	try {
-		$conn = new PDO("mysql:host=localhost;dbname=test", "root", "123456");
-		$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-		$stmt = $conn->prepare(" SELECT * FROM sessions WHERE (hash = :hash) ");
-		$stmt->bindParam(':hash' , $keep , PDO::PARAM_STR);
-		$stmt->execute();
-		if ($stmt->rowCount() == 1) {
-			$result = $stmt->fetch(PDO::FETCH_ASSOC);
-			$id = $result['user_id'];
-			$stmt2= $conn->prepare("SELECT * FROM users WHERE (id = '$id')");
-			$stmt2->execute();
-			if($stmt2->rowCount() == 1){
-			$result2 = $stmt2->fetch(PDO::FETCH_ASSOC);
-			if($result2['level'] == 1){
-				session_regenerate_id(true);
-				$_SESSION = $result;
-				$_SESSION = $result2;
-				$level = 1;
-			}else{
-				$level = 0;
-			}
-		}
-		}
-		$conn = null;
-	} catch (PDOException $e) {
-		echo "error occured".$e->getMessage();
-	}
-}elseif (! isset($_SESSION['level']) && $_SESSION['level'] != 1 ) {
-	$level = 0;
-}
-if($level == 0){
-	header("location: login.php");
+if(!isset($_SESSION['id']) || !isset($_COOKIE['ke']) ){
+	header("location: 404page.php");
 	exit();
 }
+if(! isset($_SESSION['admin']) && $_SESSION['admin'] != '1' ){
+	$_SESSION['isadmin'] = "1";
+	header('location: login.php');
+	exit();
+}
+
 ?>
 				
 
@@ -120,7 +94,11 @@ if($level == 0){
 	<a title="Information" id="nav_menu_info" href="http://localhost:8080/post/cpost.php" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
 	Create Post</a>
 </li>
-	
+						<li class="">
+						<a title="Information" id="nav_menu_info" href="http://localhost:8080/post/logout.php" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+						Logout</a>
+					</li>
+
 
 										<li><a title="Community Projects" href="http://localhost:8080/post/about.php">About</a></li>
 					<li class="">
@@ -129,10 +107,6 @@ if($level == 0){
 						</a>
 					</li>
 
-					<li class="">
-						<a title="Information" id="nav_menu_info" href="http://localhost:8080/post/logout.php" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
-						Logout</a>
-					</li>
 
 
 
